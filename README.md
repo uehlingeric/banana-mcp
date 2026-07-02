@@ -2,6 +2,8 @@
 
 MCP server for AI image generation via Google's Gemini models. Built for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
+![MCP Server](https://img.shields.io/badge/MCP_Server-1E3A8A) ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
+
 ## What It Does
 
 Exposes Gemini's image generation capabilities as MCP tools, letting Claude Code generate images from text prompts directly in your terminal session.
@@ -46,7 +48,7 @@ Actual pixel dimensions scale with aspect ratio (e.g., `16:9` at `2K` = 2048x115
 ### Install Dependencies
 
 ```bash
-pip install google-genai mcp
+pip install -r requirements.txt
 ```
 
 ### Configure Claude Code
@@ -98,4 +100,4 @@ Single-file MCP server (`server.py`, ~250 lines) using the Python MCP SDK with s
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
