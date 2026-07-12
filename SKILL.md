@@ -1,11 +1,11 @@
 ---
 name: banana
-description: "Generate images with Gemini via the Banana MCP server. Use when the user wants to generate, create, or edit images, create visual assets, render illustrations, or batch-generate multiple images. Triggers on: /banana, image generation requests, visual asset creation, illustration requests."
+description: "Generate images and text with Gemini via the Banana MCP server. Use when the user wants to: generate images, create visual assets, batch-generate images, offload text generation to Gemini (scoring, extraction, transformation, summarization), or run parallel text prompts. Triggers on: /banana, image generation, text generation offload, batch processing."
 ---
 
-# Banana — Gemini Image Generation
+# Banana — Gemini Image + Text Generation
 
-Orchestrates the `mcp__banana__*` tools to generate images with formatted output and timing.
+Orchestrates the `mcp__banana__*` tools to generate images and text with formatted output and timing.
 
 ## CLI Interface
 
@@ -19,8 +19,10 @@ Orchestrates the `mcp__banana__*` tools to generate images with formatted output
 |---------|-------------|
 | `generate <prompt>` | Generate a single image |
 | `batch <prompts...>` | Generate multiple images in parallel |
+| `text <prompt>` | Generate text from a prompt |
+| `text-batch <prompts...>` | Generate multiple text responses in parallel |
 | `settings` | Show current defaults |
-| `set <key> <value>` | Update a setting (quality, output_dir, aspect_ratio, image_size) |
+| `set <key> <value>` | Update a setting (image_model, text_model, output_dir, aspect_ratio, image_size) |
 | (no command) | Natural language — infer the intent and execute |
 
 ## Execution Rules
@@ -57,16 +59,34 @@ Field summaries per tool:
 |------|---------------|
 | `generate_image` | File path saved to |
 | `generate_images_batch` | Success count, per-image paths and times |
-| `get_settings` | Current quality, outputDir, aspectRatio (default 16:9), imageSize (default 2K) |
+| `generate_text` | Response text (or file path if output_file used) |
+| `generate_texts_batch` | Success count, per-response previews and times |
+| `get_settings` | Current settings |
 | `update_settings` | Updated settings values |
 
 ### Batch Generation
 
 When generating multiple images:
-- Use `generate_images_batch` with up to 5 images per call
+- Use `generate_images_batch` with up to 10 images per call
 - Set `max_concurrency` to avoid rate limiting (default: 3)
-- For more than 5 images, split into multiple batch calls
+- For more than 10 images, split into multiple batch calls
 - Report per-image results (path + time) and overall success rate
+
+When generating multiple text responses:
+- Use `generate_texts_batch` with up to 10 requests per call
+- Each request can have its own `system_instruction`, `model`, `output_file`, etc.
+- Set `max_concurrency` to avoid rate limiting (default: 3)
+- For more than 10 texts, split into multiple batch calls
+
+### Text Generation
+
+Use `generate_text` and `generate_texts_batch` to offload repeatable tasks to Gemini — scoring, extraction, transformation, summarization — without burning Claude Code's context window.
+
+- `system_instruction`: steers Gemini's behavior (e.g., "You are a JSON extractor. Return only valid JSON.")
+- `output_file`: saves response to a file instead of returning text directly
+- `input_image_path`: pass an image for vision/multimodal analysis (e.g., validate a generated slide, describe a screenshot)
+- `model`: override the default text model per-request
+- `max_output_tokens` / `temperature`: optional generation controls
 
 ### Pipeline Summary
 
@@ -86,7 +106,10 @@ When no explicit command is given, infer the user's intent. Examples:
 
 - "generate a hero image for my landing page" -> generate_image
 - "make 5 icons for these features" -> generate_images_batch
-- "set quality to balanced" -> update_settings
+- "score these 8 essays against this rubric" -> generate_texts_batch with system_instruction
+- "summarize this document" -> generate_text
+- "extract all email addresses from this text" -> generate_text with system_instruction
+- "set the text model to gemini-2.5-pro" -> update_settings
 - "what are my current settings" -> get_settings
 - "generate a background in 16:9" -> generate_image with aspect_ratio
 
@@ -94,12 +117,29 @@ When no explicit command is given, infer the user's intent. Examples:
 
 After generating an image, use the Read tool to display it to the user so they can see the result without leaving the session.
 
-### Quality Presets
+### Models
 
-| Preset | Model | Best For |
-|--------|-------|----------|
-| `fast` | gemini-3.1-flash-image-preview | Quick iterations, drafts |
-| `quality` | gemini-3-pro-image-preview | Final assets, hero images |
+Image and text tools accept a `model` param. If omitted, the default from settings is used.
+
+All models below are validated working on Vertex AI in `vital-sandbox-anika` / `global` as of 2026-04. `gemini-3-pro-preview` and `gemini-3-pro-image-preview` were retired 2026-03-09; `gemini-3.1-pro-preview` is the successor.
+
+**Image models** (default: `gemini-3.1-flash-image-preview`):
+
+| Model | Best For |
+|-------|----------|
+| `gemini-2.5-flash-image` | Fastest (~4s), good for high-volume drafts |
+| `gemini-3.1-flash-image-preview` | Highest-quality default, slower (~18s) |
+
+**Text models** (default: `gemini-3-flash-preview`):
+
+| Model | Best For |
+|-------|----------|
+| `gemini-2.5-flash-lite` | Lowest latency (~1.3s), simple extraction |
+| `gemini-2.5-flash` | Fast (~1.5s) with thinking, balanced |
+| `gemini-2.5-pro` | Stable reasoning, ~2.5s |
+| `gemini-3-flash-preview` | Frontier flash, multimodal — bulk tasks, scoring |
+| `gemini-3.1-flash-lite-preview` | Cheapest 3.x, highest volume |
+| `gemini-3.1-pro-preview` | Best reasoning, agentic workflows |
 
 ### Image Sizes
 

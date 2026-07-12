@@ -1,17 +1,17 @@
 # Banana MCP
 
-MCP server for AI image generation via Google's Gemini models. Built for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+MCP server for AI image and text generation via Google's Gemini models. Built for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
 ![MCP Server](https://img.shields.io/badge/MCP_Server-1E3A8A) ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
 ## What It Does
 
-Exposes Gemini's image generation capabilities as MCP tools, letting Claude Code generate images from text prompts directly in your terminal session.
+Exposes Gemini's image and text generation as MCP tools, letting Claude Code generate images and offload text tasks to Gemini directly in your terminal session.
 
-- **Single image generation** from text prompts
-- **Batch generation** — up to 5 images in parallel with concurrency control
+- **Image generation** — single or batch (up to 10 in parallel)
+- **Text generation** — single or batch, with system instructions for repeatable tasks
 - **Image editing** — pass an input image + prompt to modify existing images
-- **Configurable defaults** — quality, aspect ratio, image size, output directory
+- **Configurable defaults** — models, aspect ratio, image size, output directory
 - **Persistent settings** — saved to `settings.json` between sessions
 
 ## MCP Tools
@@ -19,16 +19,22 @@ Exposes Gemini's image generation capabilities as MCP tools, letting Claude Code
 | Tool | Description |
 |------|-------------|
 | `generate_image` | Generate a single image from a text prompt |
-| `generate_images_batch` | Generate up to 5 images in parallel |
+| `generate_images_batch` | Generate up to 10 images in parallel |
+| `generate_text` | Generate text from a prompt (supports vision via `input_image_path`) |
+| `generate_texts_batch` | Generate up to 10 text responses in parallel (supports vision) |
 | `get_settings` | Retrieve current defaults |
-| `update_settings` | Change quality, output dir, aspect ratio, image size |
+| `update_settings` | Change models, output dir, aspect ratio, image size |
 
-## Quality Presets
+## Models
 
-| Preset | Model | Best For |
-|--------|-------|----------|
-| `fast` | `gemini-3.1-flash-image-preview` | Quick iterations, drafts |
-| `quality` | `gemini-3-pro-image-preview` | Final assets, hero images |
+**Image** (default: `gemini-3.1-flash-image-preview`):
+- `gemini-3.1-flash-image-preview` — fast iterations, drafts
+- `gemini-3-pro-image-preview` — final assets, hero images
+
+**Text** (default: `gemini-3-flash-preview`):
+- `gemini-3-flash-preview` — fast, multimodal, bulk tasks
+- `gemini-3.1-pro-preview` — best reasoning, agentic
+- `gemini-3.1-flash-lite-preview` — cheapest, high volume
 
 ## Image Sizes & Aspect Ratios
 
@@ -94,9 +100,19 @@ Once configured, Claude Code can call the tools directly:
   [2] ./output/gear-3.png (6.4s)
 ```
 
+```
+> Score these 5 essays against the rubric
+
+[banana] generate_texts_batch ............ 12.1s
+  5/5 succeeded
+  [0] OK (2.3s): {"score": 8, "feedback": "Strong thesis..."}
+  [1] OK (2.5s): {"score": 6, "feedback": "Needs more ev..."}
+  ...
+```
+
 ## Architecture
 
-Single-file MCP server (`server.py`, ~250 lines) using the Python MCP SDK with stdio transport. Gemini API calls run in a thread executor for async compatibility. Settings persist to a local `settings.json` file.
+Single-file MCP server (`server.py`, ~360 lines) using the Python MCP SDK with stdio transport. Gemini API calls run in a thread executor for async compatibility. Settings persist to a local `settings.json` file.
 
 ## License
 
