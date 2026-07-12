@@ -447,5 +447,9 @@ async def main():
     async with stdio_server() as (read, write):
         await app.run(read, write, app.create_initialization_options())
 
-if __name__ == "__main__":
+def run():
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    run()

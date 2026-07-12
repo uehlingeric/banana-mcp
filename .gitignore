@@ -5,3 +5,5 @@ venv/
 .DS_Store
 settings.json
 output/
+.env
+.ruff_cache/
